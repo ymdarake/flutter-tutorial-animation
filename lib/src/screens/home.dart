@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/cat.dart';
+import 'dart:math';
 
 class Home extends StatefulWidget {
   @override
@@ -9,16 +10,36 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> with TickerProviderStateMixin {
   Animation<double> catAnimation;
   AnimationController catController;
+  Animation<double> boxAnimation;
+  AnimationController boxController;
 
   @override
   void initState() {
     super.initState();
 
-    catController = AnimationController(
-      duration: Duration(seconds: 2),
+    boxController = AnimationController(
+      duration: Duration(milliseconds: 300),
       vsync: this,
     );
-    catAnimation = Tween(begin: 0.0, end: 100.0).animate(CurvedAnimation(
+    boxAnimation =
+        Tween(begin: pi * 0.6, end: pi * 0.65).animate(CurvedAnimation(
+      parent: boxController,
+      curve: Curves.linear,
+    ));
+    boxAnimation.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        boxController.reverse();
+      } else if (status == AnimationStatus.dismissed) {
+        boxController.forward();
+      }
+    });
+    boxController.forward();
+
+    catController = AnimationController(
+      duration: Duration(milliseconds: 200),
+      vsync: this,
+    );
+    catAnimation = Tween(begin: -50.0, end: -80.0).animate(CurvedAnimation(
       parent: catController,
       curve: Curves.easeIn,
     ));
@@ -41,9 +62,11 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       body: GestureDetector(
         child: Center(
           child: Stack(
+            overflow: Overflow.visible,
             children: <Widget>[
-              buildCatAnimation(),
+              buildCatAnimation(), //displayed on the bottom
               buildBox(),
+              buildLeftFlap(), //displayed on the top
             ],
           ),
         ),
@@ -57,9 +80,11 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       animation: catAnimation,
       builder: (context, child) {
         // created again and again (cheap)
-        return Container(
+        return Positioned(
           child: child, //reused
-          margin: EdgeInsets.only(top: catAnimation.value),
+          top: catAnimation.value,
+          right: 0.0,
+          left: 0.0,
         );
       },
       child: Cat(), // created only once (expensive)
@@ -71,6 +96,27 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       height: 200.0,
       width: 200.0,
       color: Colors.brown,
+    );
+  }
+
+  Widget buildLeftFlap() {
+    return Positioned(
+      left: 3.0,
+      child: AnimatedBuilder(
+        animation: boxAnimation,
+        child: Container(
+          height: 10.0,
+          width: 125.0,
+          color: Colors.brown,
+        ),
+        builder: (context, child) {
+          return Transform.rotate(
+            child: child, //Container above
+            alignment: Alignment.topLeft,
+            angle: boxAnimation.value,
+          );
+        },
+      ),
     );
   }
 }
